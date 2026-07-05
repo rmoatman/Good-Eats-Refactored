@@ -6,7 +6,7 @@
   --text: #1c2733;
   --muted: #5b6b7b;
   --border: #dde5ec;
-  --nav-h: 96px;
+  --nav-h: 128px;
 }
 
 * {
@@ -53,7 +53,7 @@ body {
 }
 
 .navbar__logo {
-  height: 80px;
+  height: 112px;
   width: auto;
   display: block;
 }
@@ -61,26 +61,34 @@ body {
 .navbar__links {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.4rem;
+  font-size: 1.15rem;
 }
 
 .navbar__links a {
-  color: var(--brand);
+  color: var(--text);
   text-decoration: none;
+  font-weight: 600;
+}
+
+.navbar__links a:hover {
+  color: var(--brand-dark);
 }
 
 .navbar__email {
-  color: var(--muted);
-  font-size: 0.9rem;
+  color: var(--text);
+  font-size: 1rem;
 }
 
 .navbar__logout {
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0.35rem 0.7rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  color: var(--muted);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .page {
@@ -655,24 +663,6 @@ body {
   text-decoration: underline;
 }
 
-.site-footer__team-title {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #8fa3ad;
-  margin: 0 0 0.5rem;
-}
-
-.site-footer__team {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.4rem 1.2rem;
-  margin-bottom: 1.25rem;
-  padding: 0;
-  list-style: none;
-}
-
 .site-footer__copy {
   color: #7d8b94;
   font-size: 0.85rem;
@@ -691,4 +681,23 @@ body {
 .info-page h3 {
   color: var(--brand-dark);
   margin-bottom: 0.25rem;
+}
+
+.about-team {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+}
+
+.about-team a {
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.about-team a:hover {
+  text-decoration: underline;
 }

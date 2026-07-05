@@ -1,3 +1,13 @@
+// The original Good Eats team. This started as a class project (Project 1) and
+// is being refactored into a living app; we credit contributors by GitHub
+// profile rather than email.
+const TEAM = [
+  { name: 'Tyler Wheeler', github: 'https://github.com/twheeler92' },
+  { name: 'Raemarie Oatman', github: 'https://github.com/rmoatman' },
+  { name: 'Celina Lind', github: 'https://github.com/clind3' },
+  { name: 'Nicholas Herold', github: 'https://github.com/Nicholas-Herold' },
+];
+
 export default function About() {
   return (
     <section className="main info-page">
@@ -16,9 +26,14 @@ export default function About() {
         front end with an Express and MongoDB back end, user accounts, saved
         favorites, and a shareable shopping list.
       </p>
-      <p>
-        You can find the original team and the source code linked in the footer.
-      </p>
+      <h3>Original Team</h3>
+      <ul className="about-team">
+        {TEAM.map((m) => (
+          <li key={m.github}>
+            <a href={m.github} target="_blank" rel="noreferrer">{m.name}</a>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
