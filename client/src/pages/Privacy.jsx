@@ -1,4 +1,30 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
+
 export default function Privacy() {
+  const { user, deleteAccount } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Permanently delete the logged-in user's account after a confirmation.
+  async function handleDelete() {
+    const ok = window.confirm(
+      'This permanently deletes your account and all of your data (favorites and shopping list). This cannot be undone. Are you sure?'
+    );
+    if (!ok) return;
+    setError('');
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      navigate('/'); // back home, now logged out
+    } catch (err) {
+      setError(err.message || 'Sorry — we could not delete your account. Please try again.');
+      setDeleting(false);
+    }
+  }
+
   return (
     <section className="main info-page">
       <h2 className="results__header">Privacy &amp; Security</h2>
@@ -24,12 +50,27 @@ export default function Privacy() {
         return results. We don't sell your data or share it for advertising.
       </p>
 
-      <h3>Your data</h3>
+      <h3>Your data & choices</h3>
       <p>
-        You can remove favorites and clear your shopping list at any time. To
-        delete your account or request removal of your data, contact us using the
-        email link in the footer.
+        You can remove favorites and clear your shopping list at any time. You can
+        also permanently delete your account and all of your data whenever you like.
       </p>
+
+      {user ? (
+        <>
+          <button
+            type="button"
+            className="btn-danger"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting…' : 'Delete My Account'}
+          </button>
+          {error && <p className="status status--error">{error}</p>}
+        </>
+      ) : (
+        <p className="status">Log in to delete your account.</p>
+      )}
     </section>
   );
 }

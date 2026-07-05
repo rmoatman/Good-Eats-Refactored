@@ -65,4 +65,17 @@ router.get('/me', requireAuth, async (req, res, next) => {
   }
 });
 
+// DELETE /api/auth/account — permanently delete the current user and all of
+// their data. Favorites and the shopping list are embedded on the User
+// document, so removing it removes everything.
+router.delete('/account', requireAuth, async (req, res, next) => {
+  try {
+    const deleted = await User.findByIdAndDelete(req.userId);
+    if (!deleted) return res.status(404).json({ error: 'User not found.' });
+    res.json({ deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

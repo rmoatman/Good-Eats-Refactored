@@ -52,6 +52,7 @@ export const authApi = {
   login: (email, password) =>
     request('/api/auth/login', { method: 'POST', body: { email, password } }),
   me: () => request('/api/auth/me', { auth: true }),
+  deleteAccount: () => request('/api/auth/account', { method: 'DELETE', auth: true }),
 };
 
 // --- Restaurants (no auth) ---

@@ -43,8 +43,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  // Permanently delete the account, then clear local session state.
+  async function deleteAccount() {
+    await authApi.deleteAccount();
+    tokenStore.clear();
+    setUser(null);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );
