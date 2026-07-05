@@ -40,6 +40,11 @@ export async function searchRecipes(query, healthLabels = []) {
   return request(`/api/recipes/search?${params.toString()}`);
 }
 
+// Full details (cooking steps) for one recipe — fetched when its modal opens.
+export async function getRecipeDetails(id) {
+  return request(`/api/recipes/${encodeURIComponent(id)}`);
+}
+
 // --- Auth ---
 export const authApi = {
   register: (email, password) =>

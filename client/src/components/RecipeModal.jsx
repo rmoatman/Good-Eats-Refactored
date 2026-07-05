@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useFavorites } from '../context/FavoritesContext.jsx';
 import { useShoppingList } from '../context/ShoppingListContext.jsx';
+import { getRecipeDetails } from '../api/client.js';
 
 // Detail popup for a recipe. React escapes all text, so no XSS risk from
 // recipe names or ingredient lines (unlike the old innerHTML approach).
@@ -10,6 +11,9 @@ export default function RecipeModal({ recipe, onClose }) {
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   const { addRecipe } = useShoppingList();
   const [addedToList, setAddedToList] = useState(false);
+  // Cooking steps aren't in the search payload; fetch them when the modal opens.
+  const [instructions, setInstructions] = useState([]);
+  const [loadingSteps, setLoadingSteps] = useState(false);
 
   // Close on Escape for accessibility.
   useEffect(() => {
@@ -17,6 +21,32 @@ export default function RecipeModal({ recipe, onClose }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  // Lazily load the recipe's instructions (one API call per opened recipe).
+  useEffect(() => {
+    if (!recipe?.id) return;
+    // Use any steps already on the recipe; otherwise fetch them.
+    if (recipe.instructions && recipe.instructions.length) {
+      setInstructions(recipe.instructions);
+      return;
+    }
+    let cancelled = false;
+    setInstructions([]);
+    setLoadingSteps(true);
+    getRecipeDetails(recipe.id)
+      .then((d) => {
+        if (!cancelled) setInstructions(d.instructions || []);
+      })
+      .catch(() => {
+        if (!cancelled) setInstructions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSteps(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [recipe?.id, recipe?.instructions]);
 
   if (!recipe) return null;
 
@@ -67,6 +97,21 @@ export default function RecipeModal({ recipe, onClose }) {
             <li key={i}>{line}</li>
           ))}
         </ul>
+
+        <h3>Instructions</h3>
+        {loadingSteps ? (
+          <p className="status">Loading instructions…</p>
+        ) : instructions.length > 0 ? (
+          <ol className="modal__instructions">
+            {instructions.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        ) : (
+          <p className="modal__hint">
+            Step-by-step instructions aren’t available for this recipe — use “View full recipe” below.
+          </p>
+        )}
 
         <div className="modal__actions">
           {recipe.url && (
