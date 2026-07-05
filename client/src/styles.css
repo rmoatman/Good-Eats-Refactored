@@ -541,6 +541,16 @@ body {
   font-size: 0.9rem;
 }
 
+.modal__source {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.modal__source a {
+  color: var(--brand);
+}
+
 .fav-button {
   background: #fff;
   border: 1px solid var(--brand);

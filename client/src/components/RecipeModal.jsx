@@ -87,9 +87,15 @@ export default function RecipeModal({ recipe, onClose }) {
         <h2 className="modal__title">{recipe.label}</h2>
         {recipe.image && <img className="modal__image" src={recipe.image} alt={recipe.label} />}
 
-        <p><strong>Meal type:</strong> {joinCap(recipe.mealType)}</p>
-        <p><strong>Cuisine:</strong> {joinCap(recipe.cuisineType)}</p>
-        <p><strong>Diet:</strong> {join(recipe.dietLabels)}</p>
+        {recipe.mealType?.length > 0 && (
+          <p><strong>Meal type:</strong> {joinCap(recipe.mealType)}</p>
+        )}
+        {recipe.cuisineType?.length > 0 && (
+          <p><strong>Cuisine:</strong> {joinCap(recipe.cuisineType)}</p>
+        )}
+        {recipe.dietLabels?.length > 0 && (
+          <p><strong>Diet:</strong> {join(recipe.dietLabels)}</p>
+        )}
 
         <h3>Ingredients</h3>
         <ul className="modal__ingredients">
@@ -135,6 +141,18 @@ export default function RecipeModal({ recipe, onClose }) {
             <span className="modal__hint">Log in to save favorites & build a shopping list</span>
           )}
         </div>
+
+        {/* Source attribution — required by Spoonacular's terms of use. */}
+        {recipe.source && (
+          <p className="modal__source">
+            Recipe by{' '}
+            {recipe.url ? (
+              <a href={recipe.url} target="_blank" rel="noreferrer">{recipe.source}</a>
+            ) : (
+              recipe.source
+            )}
+          </p>
+        )}
       </div>
     </div>
   );

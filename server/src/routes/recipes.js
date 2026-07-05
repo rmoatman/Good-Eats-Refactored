@@ -96,6 +96,8 @@ router.get('/search', async (req, res, next) => {
       cuisineType: r.cuisines || [],
       dietLabels: r.diets || [],
       healthLabels: [],
+      // Spoonacular's terms require crediting the original source by name + link.
+      source: r.sourceName || r.creditsText || '',
       ingredients: (r.extendedIngredients || []).map((i) => i.original).filter(Boolean),
       instructions: extractSteps(r),
     }));
