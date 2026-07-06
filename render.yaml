@@ -24,7 +24,7 @@ services:
         sync: false # spoonacular.com/food-api
       - key: YELP_API_KEY
         sync: false # yelp.com/developers (optional — restaurant finder)
-      - key: GMAIL_USER
-        sync: false # optional — "email my shopping list" feature
-      - key: GMAIL_APP_PASSWORD
-        sync: false # optional — Google App Password, not your login password
+      - key: SENDGRID_API_KEY
+        sync: false # optional — password reset + "email my list" (HTTPS, SMTP-free)
+      - key: SENDGRID_FROM
+        sync: false # optional — your SendGrid-verified sender address

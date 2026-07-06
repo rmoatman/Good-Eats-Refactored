@@ -1,42 +1,64 @@
 // ===========================================================================
 // server/src/utils/mailer.js
-// Sends email through a Gmail account using Nodemailer (same approach as
-// pharm-assist). Auth uses a Google "App Password" (NOT the login password):
-//   Google Account -> Security -> 2-Step Verification -> App passwords.
-// Put the address + 16-char app password in server/.env as:
-//   GMAIL_USER, GMAIL_APP_PASSWORD
-// Free, no custom domain. ~500 emails/day; mail is "from" the Gmail address.
+// Sends email via the SendGrid HTTPS API. We use HTTP (not SMTP) because many
+// hosts — including Render's free tier — block outbound SMTP ports, which makes
+// Nodemailer/Gmail hang and time out. SendGrid's free tier works over HTTPS.
+//
+// Setup:
+//   1. Create a free SendGrid account.
+//   2. Verify a "Single Sender" (the From address, e.g. your Gmail) — no domain
+//      needed; SendGrid emails you a confirmation link.
+//   3. Create an API key (Mail Send permission).
+//   4. Set in server/.env (and on Render):
+//        SENDGRID_API_KEY=SG.xxxx
+//        SENDGRID_FROM=your_verified_sender@example.com   (defaults to GMAIL_USER)
 // ===========================================================================
 
-import nodemailer from 'nodemailer';
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+// The From address must be a SendGrid-verified sender. Fall back to GMAIL_USER
+// so existing setups keep working if that's the verified address.
+const FROM_EMAIL = (process.env.SENDGRID_FROM || process.env.GMAIL_USER || '').trim();
 
-// True only when both credentials are present. When false we skip sending and
-// throw a clear error, so the rest of the app still runs without email set up.
-export const emailConfigured = Boolean(
-  process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD
-);
+// True only when both the API key and a From address are present. When false we
+// skip sending and throw a clear error, so the rest of the app still runs.
+export const emailConfigured = Boolean(SENDGRID_API_KEY && FROM_EMAIL);
 
-const transporter = emailConfigured
-  ? nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER.trim(),
-        // Google displays app passwords with spaces ("abcd efgh ijkl mnop"), but
-        // the real value has none — strip them so a spaced paste still works.
-        pass: process.env.GMAIL_APP_PASSWORD.replace(/\s+/g, ''),
-      },
-    })
-  : null;
+// Low-level send via SendGrid's v3 API. `content` must list text/plain before
+// text/html (SendGrid requires that order).
+async function sendEmail({ to, subject, text, html }) {
+  if (!emailConfigured) {
+    console.warn('[mailer] SENDGRID_API_KEY / SENDGRID_FROM not set — cannot send email.');
+    throw new Error('Email is not configured on the server.');
+  }
+
+  const content = [{ type: 'text/plain', value: text }];
+  if (html) content.push({ type: 'text/html', value: html });
+
+  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${SENDGRID_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: FROM_EMAIL, name: 'Good Eats' },
+      subject,
+      content,
+    }),
+  });
+
+  // SendGrid returns 202 Accepted on success.
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`SendGrid send failed (${res.status}): ${body.slice(0, 200)}`);
+  }
+  return true;
+}
 
 // Send a shopping list to the given address. `groups` is an array of
 // { recipeLabel, items: [text, ...] }. Returns true when sent.
 export async function sendShoppingListEmail(to, groups) {
-  if (!emailConfigured) {
-    console.warn('[mailer] GMAIL_USER / GMAIL_APP_PASSWORD not set — cannot send shopping list.');
-    throw new Error('Email is not configured on the server.');
-  }
-
-  // Build plain-text and HTML versions grouped by recipe.
   const textParts = [];
   const htmlParts = ['<h2>Your Good Eats Shopping List</h2>'];
 
@@ -51,27 +73,18 @@ export async function sendShoppingListEmail(to, groups) {
     htmlParts.push('</ul>');
   }
 
-  await transporter.sendMail({
-    from: `Good Eats <${process.env.GMAIL_USER}>`,
+  return sendEmail({
     to,
     subject: 'Your Good Eats shopping list',
     text: `Your Good Eats Shopping List\n${textParts.join('\n')}\n`,
     html: htmlParts.join(''),
   });
-  return true;
 }
 
-// Send a password-reset link to the given address. `resetUrl` already contains
-// the one-time token. Returns true when sent.
+// Send a password-reset link. `resetUrl` already contains the one-time token.
 export async function sendPasswordResetEmail(to, resetUrl) {
-  if (!emailConfigured) {
-    console.warn('[mailer] GMAIL_USER / GMAIL_APP_PASSWORD not set — cannot send reset email.');
-    throw new Error('Email is not configured on the server.');
-  }
-
   const safeUrl = escapeHtml(resetUrl);
-  await transporter.sendMail({
-    from: `Good Eats <${process.env.GMAIL_USER}>`,
+  return sendEmail({
     to,
     subject: 'Reset your Good Eats password',
     text:
@@ -83,10 +96,9 @@ export async function sendPasswordResetEmail(to, resetUrl) {
       `<p><a href="${safeUrl}">Click here to set a new password</a> — this link expires in 1 hour.</p>` +
       "<p>If you didn't request this, you can safely ignore this email.</p>",
   });
-  return true;
 }
 
-// Minimal HTML escaping so ingredient text can't inject markup into the email.
+// Minimal HTML escaping so item/recipe text can't inject markup into the email.
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
