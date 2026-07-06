@@ -4,7 +4,6 @@
 export default function KitchenClosed({ message }) {
   return (
     <div className="kitchen-closed" role="status">
-      <span className="kitchen-closed__emoji" aria-hidden="true">👨‍🍳</span>
       <p className="kitchen-closed__text">{message}</p>
     </div>
   );

@@ -130,6 +130,40 @@ body {
   .search-panel {
     position: static;
   }
+
+  /* Recipe + zip search: input takes the full row, button wraps below it.
+     min-width:0 lets the input shrink instead of forcing horizontal scroll. */
+  .search,
+  .restaurants__zip {
+    flex-wrap: wrap;
+  }
+  .search__input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /* Dietary restrictions: two per row so "Peanut Free" is visible without
+     scrolling sideways. */
+  .filters {
+    gap: 0.6rem 1rem;
+  }
+  .filter {
+    flex: 0 1 calc(50% - 1rem);
+  }
+
+  /* Restaurant cards: let the name/rating header wrap and keep long text in-bounds. */
+  .restaurant-card__head {
+    flex-wrap: wrap;
+  }
+  .restaurant-card__cats,
+  .restaurant-card__addr {
+    overflow-wrap: anywhere;
+  }
+
+  /* Quota notice fits the screen width. */
+  .kitchen-closed {
+    max-width: 100%;
+  }
 }
 
 .page {
@@ -441,22 +475,13 @@ body {
 
 /* Warm "kitchen closed" notice (recipe API quota reached) — friendly, not an error */
 .kitchen-closed {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
   background: #fff8ec;
   border: 1px solid #f0dcae;
   border-left: 4px solid #e8a33d;
   border-radius: 10px;
   padding: 1.1rem 1.35rem;
-  max-width: 560px;
+  max-width: 480px;
   margin: 0.5rem 0;
-}
-
-.kitchen-closed__emoji {
-  font-size: 2rem;
-  line-height: 1;
-  flex-shrink: 0;
 }
 
 .kitchen-closed__text {
