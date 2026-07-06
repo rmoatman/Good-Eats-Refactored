@@ -116,4 +116,4 @@ This is free and unencumbered software released into the public domain
 - Celina Lind — [github.com/clind3](https://github.com/clind3)
 - Nicholas Herold — [github.com/Nicholas-Herold](https://github.com/Nicholas-Herold)
 
-The refactor into a full-stack app is an ongoing effort by Raemarie Oatman.
+The refactor into a full-stack app is an ongoing effort by Raemarie Oatman using Claude Code (Anthropic)
