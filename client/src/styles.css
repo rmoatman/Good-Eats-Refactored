@@ -786,6 +786,32 @@ body {
   color: var(--text);
 }
 
+/* One-tap PWA install button (Install page) */
+.install-cta {
+  margin: 0 0 2rem;
+}
+
+.btn-install {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-install:hover {
+  background: var(--brand-dark);
+}
+
+.install-status {
+  margin: 0 0 2rem;
+  color: var(--brand-dark);
+  font-weight: 600;
+}
+
 .btn-danger {
   background: #c0392b;
   color: #fff;

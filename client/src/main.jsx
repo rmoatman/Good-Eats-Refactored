@@ -8,7 +8,16 @@ import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { FavoritesProvider } from './context/FavoritesContext.jsx';
 import { ShoppingListProvider } from './context/ShoppingListContext.jsx';
+import { PwaInstallProvider } from './context/PwaInstallContext.jsx';
 import './styles.css';
+
+// Capture the PWA install prompt as early as possible — it can fire before
+// React finishes mounting. We stash it and notify PwaInstallProvider.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); // suppress Chrome's default mini-infobar; we trigger it ourselves
+  window.__deferredInstallPrompt = e;
+  window.dispatchEvent(new Event('pwa:installable'));
+});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -16,7 +25,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <FavoritesProvider>
           <ShoppingListProvider>
-            <App />
+            <PwaInstallProvider>
+              <App />
+            </PwaInstallProvider>
           </ShoppingListProvider>
         </FavoritesProvider>
       </AuthProvider>
