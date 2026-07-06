@@ -1,3 +1,6 @@
+// Favorites context: holds the current user's saved recipes.
+// Loads from the API on login and clears on logout, and keeps local state in
+// sync by trusting the server's returned list after every add/remove.
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { favoritesApi } from '../api/client.js';
 import { useAuth } from './AuthContext.jsx';
@@ -9,6 +12,8 @@ export function FavoritesProvider({ children }) {
   const [favorites, setFavorites] = useState([]);
 
   // Load favorites whenever a user logs in; clear them on logout.
+  // `cancelled` guards against a stale in-flight fetch resolving after the
+  // user changed again (fast logout/login) and clobbering current state.
   useEffect(() => {
     let cancelled = false;
     async function load() {

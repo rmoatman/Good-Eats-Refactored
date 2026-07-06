@@ -1,3 +1,6 @@
+// User model: stores the login email + bcrypt password hash, and embeds each
+// user's favorites and shopping-list arrays on the same document (no separate
+// collections/joins). Password helpers keep hashing/verification in one place.
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import favoriteSchema from './Favorite.js';
@@ -8,8 +11,8 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
-      lowercase: true,
+      unique: true, // enforces one account per address via a Mongo unique index
+      lowercase: true, // normalize so signup/login are case-insensitive
       trim: true,
     },
     passwordHash: {

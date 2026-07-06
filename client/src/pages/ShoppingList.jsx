@@ -1,3 +1,6 @@
+// ShoppingList — shows the user's saved ingredient items grouped by the recipe
+// they came from, with check-off, remove, clear, print, and email actions.
+// Requires auth; prompts to log in otherwise.
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';

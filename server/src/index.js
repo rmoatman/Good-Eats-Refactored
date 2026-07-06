@@ -1,3 +1,5 @@
+// Express app entry point: configures CORS + JSON parsing, mounts the API
+// routers, defines a JSON error handler, then connects to Mongo before listening.
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';

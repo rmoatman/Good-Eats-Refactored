@@ -1,3 +1,5 @@
+// MongoDB connection helper. Wraps mongoose.connect and wires up connection
+// event logging so the rest of the app just awaits connectDB() at startup.
 import mongoose from 'mongoose';
 
 // Connect to MongoDB Atlas. The URI comes from the MONGODB_URI env var.

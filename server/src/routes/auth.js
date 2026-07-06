@@ -1,14 +1,21 @@
+// Authentication routes: register/login (bcrypt hashing + JWT issuance),
+// the /me lookup for the current user, and account deletion. Login avoids
+// user enumeration by returning one generic error for bad email or password.
 import { Router } from 'express';
 import User from '../models/User.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
+// Lightweight shape check only ("x@y.z"); real validity is confirmed by use,
+// not by regex. Kept simple on purpose to avoid rejecting valid addresses.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // POST /api/auth/register  { email, password }
 router.post('/register', async (req, res, next) => {
   try {
+    // Normalize to lowercase so lookups/uniqueness are case-insensitive;
+    // coerce to strings to guard against non-string JSON payloads.
     const email = (req.body.email || '').toString().trim().toLowerCase();
     const password = (req.body.password || '').toString();
 
@@ -25,9 +32,11 @@ router.post('/register', async (req, res, next) => {
     }
 
     const user = new User({ email });
-    await user.setPassword(password);
+    await user.setPassword(password); // hashes with bcrypt; plaintext never stored
     await user.save();
 
+    // Auto-login on register: hand back a token so the client is signed in.
+    // toSafeJSON() strips the password hash from the response.
     const token = signToken(user._id.toString());
     res.status(201).json({ token, user: user.toSafeJSON() });
   } catch (err) {

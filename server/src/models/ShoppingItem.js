@@ -1,3 +1,5 @@
+// ShoppingItem sub-schema — exported schema only (not a compiled model) so it
+// can be embedded as an array on the User document. See usage in User.shoppingList.
 import mongoose from 'mongoose';
 
 const { Schema } = mongoose;

@@ -1,3 +1,6 @@
+// App entry point: mounts React and wraps <App /> in the router + global
+// context providers. Provider order matters — Favorites and ShoppingList read
+// the auth token, so AuthProvider must sit outermost of the three.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

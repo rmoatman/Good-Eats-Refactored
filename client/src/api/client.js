@@ -1,3 +1,6 @@
+// Central API client: a thin fetch wrapper (JSON + Bearer auth, error
+// unwrapping) plus grouped endpoint helpers for the Express backend.
+
 // In dev, VITE_API_URL is empty and Vite proxies /api to the Express server.
 // In production, set VITE_API_URL to the deployed API origin.
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -25,8 +28,10 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
+  // Fall back to {} so a non-JSON/empty body (e.g. 204) doesn't throw on parse.
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // Surface the server's error message when present, else a generic status.
     throw new Error(data.error || `Request failed (${res.status})`);
   }
   return data;
@@ -36,6 +41,7 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
 export async function searchRecipes(query, healthLabels = []) {
   const params = new URLSearchParams();
   if (query) params.set('q', query);
+  // append (not set) so multiple health filters serialize as repeated params.
   for (const label of healthLabels) params.append('health', label);
   return request(`/api/recipes/search?${params.toString()}`);
 }
@@ -58,6 +64,7 @@ export const authApi = {
 // --- Restaurants (no auth) ---
 export function searchRestaurants({ location, lat, lng }) {
   const params = new URLSearchParams();
+  // Prefer precise device coordinates; fall back to a typed location string.
   if (lat != null && lng != null) {
     params.set('lat', lat);
     params.set('lng', lng);

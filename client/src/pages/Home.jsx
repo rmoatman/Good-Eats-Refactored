@@ -1,3 +1,6 @@
+// Home — the main search page. Handles the search box, dietary filters,
+// the results list (paginated client-side at PAGE_SIZE per page), and opening
+// a selected recipe in the modal.
 import { useEffect, useState } from 'react';
 import { searchRecipes } from '../api/client.js';
 import DietaryFilters from '../components/DietaryFilters.jsx';
@@ -76,6 +79,7 @@ export default function Home() {
           )}
 
           <ul className="recipe-list">
+            {/* Search returns the full result set; slice locally to the current page. */}
             {recipes
               .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
               .map((r) => (

@@ -1,3 +1,6 @@
+// JWT auth helpers: mint tokens at login/signup and guard protected routes.
+// The token carries only the user id (as `sub`) so no session state is kept
+// server-side; JWT_SECRET must match between signing and verifying.
 import jwt from 'jsonwebtoken';
 
 // Sign a JWT for a user id. Token is sent to the client and stored there.

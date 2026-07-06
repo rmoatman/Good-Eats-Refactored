@@ -1,3 +1,6 @@
+// Restaurant search endpoint. Acts as a thin proxy to the Yelp Fusion API so
+// the API key never reaches the browser: the client calls us, we call Yelp
+// with the secret key server-side and return a trimmed-down result set.
 import { Router } from 'express';
 
 const router = Router();
@@ -27,6 +30,8 @@ router.get('/', async (req, res, next) => {
     params.set('limit', '10');
     params.set('sort_by', 'distance');
 
+    // Prefer precise coordinates when the browser supplied them; otherwise
+    // fall back to the typed location/ZIP. Yelp accepts one or the other.
     if (lat && lng) {
       params.set('latitude', String(lat));
       params.set('longitude', String(lng));
@@ -41,6 +46,8 @@ router.get('/', async (req, res, next) => {
     });
 
     if (!response.ok) {
+      // Surface Yelp's failure to the client but cap the passed-through body so
+      // a large/unexpected upstream response can't bloat our error payload.
       const body = await response.text();
       return res.status(response.status).json({
         error: 'Restaurant search failed upstream.',

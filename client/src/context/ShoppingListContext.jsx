@@ -1,3 +1,6 @@
+// Shopping list context: holds the current user's shopping list items.
+// Loads from the API on login and clears on logout; every mutation replaces
+// local state with the server's returned list so the two never drift.
 import { createContext, useContext, useEffect, useState } from 'react';
 import { shoppingApi } from '../api/client.js';
 import { useAuth } from './AuthContext.jsx';
@@ -9,6 +12,8 @@ export function ShoppingListProvider({ children }) {
   const [items, setItems] = useState([]);
 
   // Load the list when a user logs in; clear it on logout.
+  // `cancelled` guards against a stale in-flight fetch resolving after the
+  // user changed again (fast logout/login) and clobbering current state.
   useEffect(() => {
     let cancelled = false;
     async function load() {

@@ -1,3 +1,5 @@
+// Favorites — lists the logged-in user's saved recipes, each with a link out
+// to the source recipe and a remove button. Requires auth; prompts to log in otherwise.
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useFavorites } from '../context/FavoritesContext.jsx';

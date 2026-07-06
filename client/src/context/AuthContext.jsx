@@ -1,3 +1,7 @@
+// Auth context: single source of truth for the logged-in user.
+// Restores a session from a stored JWT on load and exposes
+// login/register/logout/deleteAccount. Other contexts (favorites, shopping
+// list) key off `user` here to know when to load or clear their data.
 import { createContext, useContext, useEffect, useState } from 'react';
 import { authApi, tokenStore } from '../api/client.js';
 

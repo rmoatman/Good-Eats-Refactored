@@ -1,3 +1,4 @@
+// Root layout + route table: persistent NavBar and Footer wrap the routed page.
 import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar.jsx';
 import Footer from './components/Footer.jsx';
@@ -22,6 +23,7 @@ export default function App() {
     <div className="app">
       <NavBar />
       <div className="page">
+        {/* login vs. register reuse one AuthForm, switched by the mode prop */}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/favorites" element={<Favorites />} />
