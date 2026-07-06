@@ -20,8 +20,10 @@ const transporter = emailConfigured
   ? nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: process.env.GMAIL_USER.trim(),
+        // Google displays app passwords with spaces ("abcd efgh ijkl mnop"), but
+        // the real value has none — strip them so a spaced paste still works.
+        pass: process.env.GMAIL_APP_PASSWORD.replace(/\s+/g, ''),
       },
     })
   : null;
