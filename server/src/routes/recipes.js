@@ -4,6 +4,12 @@ const router = Router();
 
 const SPOONACULAR_BASE = 'https://api.spoonacular.com/recipes/complexSearch';
 
+// Shown to users when Spoonacular's daily point quota is exhausted (HTTP 402),
+// instead of a raw upstream error.
+const KITCHEN_CLOSED_MESSAGE =
+  "We're sorry, the kitchen is closed for restocking. It will re-open tomorrow. " +
+  'Until then, you can still access your favorites. Bon Appétit!';
+
 // The dietary-filter values the client sends map onto Spoonacular's
 // "intolerances" parameter (comma-separated). Whitelisted so we never forward
 // arbitrary user input upstream.
@@ -76,6 +82,10 @@ router.get('/search', async (req, res, next) => {
     const response = await fetch(`${SPOONACULAR_BASE}?${params.toString()}`);
     if (!response.ok) {
       const body = await response.text();
+      // Daily quota used up — show the friendly "kitchen closed" message.
+      if (response.status === 402) {
+        return res.status(402).json({ error: KITCHEN_CLOSED_MESSAGE, code: 'QUOTA_EXCEEDED' });
+      }
       return res.status(response.status).json({
         error: 'Recipe search failed upstream.',
         upstreamStatus: response.status,
@@ -126,6 +136,9 @@ router.get('/:id', async (req, res, next) => {
     const response = await fetch(url);
     if (!response.ok) {
       const body = await response.text();
+      if (response.status === 402) {
+        return res.status(402).json({ error: KITCHEN_CLOSED_MESSAGE, code: 'QUOTA_EXCEEDED' });
+      }
       return res.status(response.status).json({
         error: 'Recipe details failed upstream.',
         upstreamStatus: response.status,
