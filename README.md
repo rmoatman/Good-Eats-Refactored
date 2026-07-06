@@ -1,5 +1,8 @@
 # Good Eats
 
+**🔗 Live app: [good-eats-z0fw.onrender.com](https://good-eats-z0fw.onrender.com)**
+*(hosted on Render's free tier — the first visit after a while may take ~30–60s to wake up)*
+
 Find recipes that fit real dietary needs, save your favorites, build a shopping
 list, and discover restaurants nearby.
 
@@ -99,8 +102,17 @@ npm run dev               # starts Vite on http://localhost:5173
 ```
 
 In development, Vite proxies `/api` requests to the Express server, so the
-browser talks to a single origin (no CORS setup needed). For production, set
-`VITE_API_URL` to the deployed API's origin.
+browser talks to a single origin (no CORS setup needed). The Render deployment
+also serves the client and API from one origin, so no `VITE_API_URL` is needed
+there — set it only if you host the client separately from the API.
+
+## Deployment
+
+Good Eats deploys to [Render](https://render.com) as a **single web service**:
+the Express server serves the built React client, so there's one origin and no
+CORS setup. Configuration lives in [`render.yaml`](render.yaml), and
+[DEPLOY.md](DEPLOY.md) has the full step-by-step walkthrough (MongoDB Atlas,
+environment variables, and the Render Blueprint).
 
 ## License
 

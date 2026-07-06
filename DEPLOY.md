@@ -48,7 +48,8 @@ until configured.
 4. Click **Apply / Deploy**. Render runs `npm run build` (installs + builds the
    client, installs the server) then `npm start`.
 5. First build takes a few minutes. When it's live you'll get a URL like
-   `https://good-eats.onrender.com`.
+   `https://good-eats-z0fw.onrender.com` (Render appends a random suffix to the
+   `onrender.com` subdomain; it can't be changed later without a custom domain).
 
 **Health check:** Render pings `/api/health`; a healthy deploy returns
 `{"status":"ok"}`.
