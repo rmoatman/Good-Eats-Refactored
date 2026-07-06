@@ -65,6 +65,12 @@ export default function AuthForm({ mode }) {
         </button>
       </form>
 
+      {!isRegister && (
+        <p className="auth__switch">
+          <Link to="/forgot-password">Forgot your password?</Link>
+        </p>
+      )}
+
       <p className="auth__switch">
         {isRegister ? (
           <>Already have an account? <Link to="/login">Log in</Link></>

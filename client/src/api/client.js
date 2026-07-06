@@ -64,6 +64,10 @@ export const authApi = {
     request('/api/auth/login', { method: 'POST', body: { email, password } }),
   me: () => request('/api/auth/me', { auth: true }),
   deleteAccount: () => request('/api/auth/account', { method: 'DELETE', auth: true }),
+  forgotPassword: (email) =>
+    request('/api/auth/forgot-password', { method: 'POST', body: { email } }),
+  resetPassword: (token, password) =>
+    request('/api/auth/reset-password', { method: 'POST', body: { token, password } }),
 };
 
 // --- Restaurants (no auth) ---

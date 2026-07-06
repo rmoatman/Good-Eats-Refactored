@@ -4,6 +4,7 @@
 import { Router } from 'express';
 import User from '../models/User.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
+import { emailConfigured, sendPasswordResetEmail } from '../utils/mailer.js';
 
 const router = Router();
 
@@ -69,6 +70,79 @@ router.get('/me', requireAuth, async (req, res, next) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found.' });
     res.json({ user: user.toSafeJSON() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/forgot-password  { email }
+// Emails a one-time reset link. Always responds the same way whether or not the
+// account exists, to avoid revealing which emails are registered.
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    // Reset depends on email; if it isn't configured, fail the same for everyone
+    // (this doesn't reveal whether any particular account exists).
+    if (!emailConfigured) {
+      return res
+        .status(503)
+        .json({ error: 'Password reset is unavailable — email is not configured on the server.' });
+    }
+
+    const email = (req.body.email || '').toString().trim().toLowerCase();
+    const genericMsg = 'If an account exists for that email, a password reset link has been sent.';
+
+    if (EMAIL_RE.test(email)) {
+      const user = await User.findOne({ email });
+      if (user) {
+        const rawToken = user.setResetToken();
+        await user.save();
+        // In production on Render, RENDER_EXTERNAL_URL is the app's own URL; in
+        // dev, default to the Vite client. Override with APP_BASE_URL if needed.
+        const baseUrl =
+          process.env.APP_BASE_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173';
+        const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+        try {
+          await sendPasswordResetEmail(user.email, resetUrl);
+        } catch (mailErr) {
+          // Don't leak details to the client; the generic message still returns.
+          console.error('[forgot-password] failed to send email:', mailErr.message);
+        }
+      }
+    }
+
+    return res.json({ message: genericMsg });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/reset-password  { token, password }
+// Validates the emailed token (by hash + expiry) and sets a new password.
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const token = (req.body.token || '').toString();
+    const password = (req.body.password || '').toString();
+
+    if (!token) return res.status(400).json({ error: 'Missing reset token.' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    }
+
+    const user = await User.findOne({
+      resetTokenHash: User.hashResetToken(token),
+      resetTokenExpires: { $gt: new Date() }, // not expired
+    });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
+    }
+
+    await user.setPassword(password);
+    user.clearResetToken(); // single-use
+    await user.save();
+
+    return res.json({ message: 'Your password has been reset. You can now log in.' });
   } catch (err) {
     next(err);
   }

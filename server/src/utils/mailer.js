@@ -59,6 +59,31 @@ export async function sendShoppingListEmail(to, groups) {
   return true;
 }
 
+// Send a password-reset link to the given address. `resetUrl` already contains
+// the one-time token. Returns true when sent.
+export async function sendPasswordResetEmail(to, resetUrl) {
+  if (!emailConfigured) {
+    console.warn('[mailer] GMAIL_USER / GMAIL_APP_PASSWORD not set — cannot send reset email.');
+    throw new Error('Email is not configured on the server.');
+  }
+
+  const safeUrl = escapeHtml(resetUrl);
+  await transporter.sendMail({
+    from: `Good Eats <${process.env.GMAIL_USER}>`,
+    to,
+    subject: 'Reset your Good Eats password',
+    text:
+      'We received a request to reset your Good Eats password.\n\n' +
+      `Use this link to set a new password (it expires in 1 hour):\n${resetUrl}\n\n` +
+      "If you didn't request this, you can safely ignore this email.",
+    html:
+      '<p>We received a request to reset your Good Eats password.</p>' +
+      `<p><a href="${safeUrl}">Click here to set a new password</a> — this link expires in 1 hour.</p>` +
+      "<p>If you didn't request this, you can safely ignore this email.</p>",
+  });
+  return true;
+}
+
 // Minimal HTML escaping so ingredient text can't inject markup into the email.
 function escapeHtml(str) {
   return String(str)

@@ -1,7 +1,7 @@
 // Top navigation bar: logo (links home) plus auth-aware links. Signed-in users
 // see Favorites, Shopping List (with live item count), their email, and Log out;
 // guests see Log in / Sign up instead.
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useShoppingList } from '../context/ShoppingListContext.jsx';
 import { usePwaInstall } from '../context/PwaInstallContext.jsx';
@@ -14,6 +14,8 @@ export default function NavBar() {
   const { count } = useShoppingList();
   // canInstall is true only when the browser has offered a PWA install prompt.
   const { canInstall, promptInstall } = usePwaInstall();
+  // Hide the "Home" link when we're already on the home page (the logo links there).
+  const onHome = useLocation().pathname === '/';
 
   return (
     <nav className="navbar">
@@ -21,7 +23,7 @@ export default function NavBar() {
         <img src={logo} alt="Good Eats" className="navbar__logo" />
       </Link>
       <div className="navbar__links">
-        <Link to="/">Home</Link>
+        {!onHome && <Link to="/">Home</Link>}
         {/* Only appears on browsers that support installing the PWA */}
         {canInstall && (
           <button className="navbar__install" onClick={promptInstall}>⬇ Install</button>
