@@ -9,8 +9,10 @@ export default function Install() {
       <h1>Add Good Eats to your device.</h1>
 
       <p className="info-lead">
-        Good Eats runs in any modern browser — no install required. For quick
-        access from your home screen or desktop, you can add it as an app.
+        Good Eats is an installable web app (PWA). It runs in any modern browser
+        — no install required — but you can add it to your home screen or desktop
+        for quick, app-like access, and it keeps working even on a flaky
+        connection.
       </p>
 
       {/* One labeled section per platform, each with numbered steps */}

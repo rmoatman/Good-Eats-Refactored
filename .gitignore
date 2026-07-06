@@ -17,3 +17,6 @@ npm-debug.log*
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# vite-plugin-pwa dev output
+dev-dist/
