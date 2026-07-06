@@ -1,6 +1,8 @@
 // Express app entry point: configures CORS + JSON parsing, mounts the API
 // routers, defines a JSON error handler, then connects to Mongo before listening.
 import 'dotenv/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
@@ -39,6 +41,21 @@ app.use('/api/recipes', recipesRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/restaurants', restaurantsRouter);
 app.use('/api/shopping-list', shoppingListRouter);
+
+// In production we serve the built React client from this same server (a single
+// Render web service), so the browser talks to one origin — no CORS, no
+// separate VITE_API_URL. In dev, Vite serves the client and proxies /api here.
+if (process.env.NODE_ENV === 'production') {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const clientDist = path.resolve(__dirname, '../../client/dist');
+  app.use(express.static(clientDist));
+  // SPA fallback: any non-API GET returns index.html so client-side routes
+  // (e.g. /favorites, /about) work on refresh/direct-load.
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next(); // let unknown /api 404
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 // Fallback error handler so thrown errors return JSON, not HTML.
 app.use((err, req, res, next) => {

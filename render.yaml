@@ -1,0 +1,30 @@
+# Render Blueprint — deploys Good Eats as ONE web service: the Express API also
+# serves the built React client (a monolith on a single origin, so there's no
+# CORS setup and no separate client host).
+#
+# To use: Render dashboard -> New + -> Blueprint -> connect this repo. Render
+# reads this file, builds, generates JWT_SECRET, and prompts you for the secrets
+# marked `sync: false` (paste them in the dashboard — they are never committed).
+services:
+  - type: web
+    name: good-eats
+    runtime: node
+    plan: free # free tier sleeps after ~15 min idle (first hit after is slow)
+    buildCommand: npm run build # installs + builds client, installs server
+    startCommand: npm start # node server/src/index.js (serves API + client/dist)
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong secret once and keeps it
+      - key: MONGODB_URI
+        sync: false # your MongoDB Atlas connection string
+      - key: SPOONACULAR_API_KEY
+        sync: false # spoonacular.com/food-api
+      - key: YELP_API_KEY
+        sync: false # yelp.com/developers (optional — restaurant finder)
+      - key: GMAIL_USER
+        sync: false # optional — "email my shopping list" feature
+      - key: GMAIL_APP_PASSWORD
+        sync: false # optional — Google App Password, not your login password
