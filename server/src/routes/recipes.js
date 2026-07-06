@@ -62,10 +62,10 @@ router.get('/search', async (req, res, next) => {
     // load looking intentional rather than random.
     params.set('query', q || 'dinner');
     params.set('number', '20');
-    // Return full recipe info (ingredients + instructions) in one call so the
-    // detail modal doesn't need a second request.
-    params.set('addRecipeInformation', 'true');
-    params.set('fillIngredients', 'true');
+    // Keep the search cheap on Spoonacular points: request only the list
+    // (id + title + image). Full details — ingredients, steps, cuisine, etc. —
+    // are loaded per-recipe when a modal opens (GET /:id below). This avoids
+    // paying for detailed info on 20 recipes the user may never open.
 
     // health can arrive as a single value or an array (?health=a&health=b).
     const rawHealth = req.query.health;
@@ -95,21 +95,11 @@ router.get('/search', async (req, res, next) => {
 
     const data = await response.json();
 
-    // Map Spoonacular's shape onto the shape the client already expects.
+    // Minimal shape for the results grid; the modal fetches the rest via /:id.
     const recipes = (data.results || []).map((r) => ({
       id: String(r.id),
       label: r.title,
       image: r.image,
-      url: r.sourceUrl || r.spoonacularSourceUrl || '',
-      yield: r.servings,
-      mealType: r.dishTypes || [],
-      cuisineType: r.cuisines || [],
-      dietLabels: r.diets || [],
-      healthLabels: [],
-      // Spoonacular's terms require crediting the original source by name + link.
-      source: r.sourceName || r.creditsText || '',
-      ingredients: (r.extendedIngredients || []).map((i) => i.original).filter(Boolean),
-      instructions: extractSteps(r),
     }));
 
     res.json({ count: data.totalResults ?? recipes.length, recipes });
@@ -146,8 +136,18 @@ router.get('/:id', async (req, res, next) => {
       });
     }
     const r = await response.json();
+    // Full detail shape the modal renders (metadata + ingredients + steps).
     res.json({
       id: String(r.id),
+      label: r.title,
+      image: r.image,
+      url: r.sourceUrl || r.spoonacularSourceUrl || '',
+      yield: r.servings,
+      mealType: r.dishTypes || [],
+      cuisineType: r.cuisines || [],
+      dietLabels: r.diets || [],
+      // Spoonacular's terms require crediting the original source by name + link.
+      source: r.sourceName || r.creditsText || '',
       ingredients: (r.extendedIngredients || []).map((i) => i.original).filter(Boolean),
       instructions: extractSteps(r),
     });

@@ -3,17 +3,20 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useFavorites } from '../context/FavoritesContext.jsx';
 import { useShoppingList } from '../context/ShoppingListContext.jsx';
 import { getRecipeDetails } from '../api/client.js';
+import KitchenClosed from './KitchenClosed.jsx';
 
-// Detail popup for a recipe. React escapes all text, so no XSS risk from
-// recipe names or ingredient lines (unlike the old innerHTML approach).
+// Detail popup for a recipe. To save API points, the search payload only carries
+// id/label/image, so the full details (ingredients, steps, cuisine, source) are
+// fetched here when the modal opens — one API call per opened recipe. React
+// escapes all text, so there's no XSS risk from recipe names or ingredient lines.
 export default function RecipeModal({ recipe, onClose }) {
   const { user } = useAuth();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   const { addRecipe } = useShoppingList();
   const [addedToList, setAddedToList] = useState(false);
-  // Cooking steps aren't in the search payload; fetch them when the modal opens.
-  const [instructions, setInstructions] = useState([]);
-  const [loadingSteps, setLoadingSteps] = useState(false);
+  const [details, setDetails] = useState(null); // full data from GET /:id
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null); // { message, code }
 
   // Close on Escape for accessibility.
   useEffect(() => {
@@ -22,40 +25,41 @@ export default function RecipeModal({ recipe, onClose }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  // Lazily load the recipe's instructions (one API call per opened recipe).
+  // Fetch the recipe's full details when it opens (one API call per recipe).
   useEffect(() => {
     if (!recipe?.id) return;
-    // Use any steps already on the recipe; otherwise fetch them.
-    if (recipe.instructions && recipe.instructions.length) {
-      setInstructions(recipe.instructions);
-      return;
-    }
     let cancelled = false;
-    setInstructions([]);
-    setLoadingSteps(true);
+    setDetails(null);
+    setLoadError(null);
+    setLoading(true);
     getRecipeDetails(recipe.id)
       .then((d) => {
-        if (!cancelled) setInstructions(d.instructions || []);
+        if (!cancelled) setDetails(d);
       })
-      .catch(() => {
-        if (!cancelled) setInstructions([]);
+      .catch((err) => {
+        // e.g. QUOTA_EXCEEDED — surface the warm notice below.
+        if (!cancelled) setLoadError({ message: err.message, code: err.code });
       })
       .finally(() => {
-        if (!cancelled) setLoadingSteps(false);
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [recipe?.id, recipe?.instructions]);
+  }, [recipe?.id]);
 
   if (!recipe) return null;
 
-  const join = (arr) => (arr && arr.length ? arr.join(', ') : '—');
-  // Edamam returns meal types / cuisines in lowercase (e.g. "lunch/dinner",
-  // "american"); title-case each word for display.
+  // Title-case lowercase meal types / cuisines from the API for display.
   const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
-  const joinCap = (arr) => (arr && arr.length ? arr.map(titleCase).join(', ') : '—');
+  const joinCap = (arr) => (arr && arr.length ? arr.map(titleCase).join(', ') : '');
+  const join = (arr) => (arr && arr.length ? arr.join(', ') : '');
+
   const saved = isFavorite(recipe.id);
+  const url = details?.url || '';
+  const ingredients = details?.ingredients || [];
+  const instructions = details?.instructions || [];
+  const ready = !!details && !loading; // details available for the action buttons
 
   async function toggleFavorite() {
     if (saved) {
@@ -65,14 +69,13 @@ export default function RecipeModal({ recipe, onClose }) {
         recipeId: recipe.id,
         label: recipe.label,
         image: recipe.image,
-        url: recipe.url,
+        url, // from the loaded details
       });
     }
   }
 
   async function addIngredientsToList() {
-    const ingredients = recipe.ingredients || [];
-    if (ingredients.length === 0) return;
+    if (!ingredients.length) return;
     await addRecipe(recipe.label, ingredients);
     setAddedToList(true);
     setTimeout(() => setAddedToList(false), 2500); // brief confirmation
@@ -84,56 +87,80 @@ export default function RecipeModal({ recipe, onClose }) {
         <button className="modal__close" onClick={onClose} aria-label="Close">
           &times;
         </button>
+        {/* Title + image come from the search payload, so they render instantly */}
         <h2 className="modal__title">{recipe.label}</h2>
         {recipe.image && <img className="modal__image" src={recipe.image} alt={recipe.label} />}
 
-        {recipe.mealType?.length > 0 && (
-          <p><strong>Meal type:</strong> {joinCap(recipe.mealType)}</p>
-        )}
-        {recipe.cuisineType?.length > 0 && (
-          <p><strong>Cuisine:</strong> {joinCap(recipe.cuisineType)}</p>
-        )}
-        {recipe.dietLabels?.length > 0 && (
-          <p><strong>Diet:</strong> {join(recipe.dietLabels)}</p>
-        )}
-
-        <h3>Ingredients</h3>
-        <ul className="modal__ingredients">
-          {(recipe.ingredients || []).map((line, i) => (
-            <li key={i}>{line}</li>
-          ))}
-        </ul>
-
-        <h3>Instructions</h3>
-        {loadingSteps ? (
-          <p className="status">Loading instructions…</p>
-        ) : instructions.length > 0 ? (
-          <ol className="modal__instructions">
-            {instructions.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ol>
+        {/* Details area: loading spinner / warm quota notice / error / content */}
+        {loading ? (
+          <p className="status">Loading recipe…</p>
+        ) : loadError ? (
+          loadError.code === 'QUOTA_EXCEEDED' ? (
+            <KitchenClosed message={loadError.message} />
+          ) : (
+            <p className="status status--error">{loadError.message}</p>
+          )
         ) : (
-          <p className="modal__hint">
-            Step-by-step instructions aren’t available for this recipe — use “View full recipe” below.
-          </p>
+          details && (
+            <>
+              {details.mealType?.length > 0 && (
+                <p><strong>Meal type:</strong> {joinCap(details.mealType)}</p>
+              )}
+              {details.cuisineType?.length > 0 && (
+                <p><strong>Cuisine:</strong> {joinCap(details.cuisineType)}</p>
+              )}
+              {details.dietLabels?.length > 0 && (
+                <p><strong>Diet:</strong> {join(details.dietLabels)}</p>
+              )}
+
+              <h3>Ingredients</h3>
+              {ingredients.length > 0 ? (
+                <ul className="modal__ingredients">
+                  {ingredients.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="modal__hint">No ingredient list available for this recipe.</p>
+              )}
+
+              <h3>Instructions</h3>
+              {instructions.length > 0 ? (
+                <ol className="modal__instructions">
+                  {instructions.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="modal__hint">
+                  Step-by-step instructions aren’t available for this recipe — use “View full recipe” below.
+                </p>
+              )}
+            </>
+          )
         )}
 
         <div className="modal__actions">
-          {recipe.url && (
-            <a className="modal__link" href={recipe.url} target="_blank" rel="noreferrer">
+          {url && (
+            <a className="modal__link" href={url} target="_blank" rel="noreferrer">
               View full recipe
             </a>
           )}
           {user ? (
             <>
+              {/* Saving needs the loaded url; allow un-saving even before details load */}
               <button
                 className={`fav-button ${saved ? 'fav-button--saved' : ''}`}
                 onClick={toggleFavorite}
+                disabled={!ready && !saved}
               >
                 {saved ? '★ Saved' : '☆ Save to Favorites'}
               </button>
-              <button className="fav-button" onClick={addIngredientsToList}>
+              <button
+                className="fav-button"
+                onClick={addIngredientsToList}
+                disabled={!ready || ingredients.length === 0}
+              >
                 {addedToList ? '✓ Added to list' : '＋ Add ingredients to list'}
               </button>
             </>
@@ -143,13 +170,13 @@ export default function RecipeModal({ recipe, onClose }) {
         </div>
 
         {/* Source attribution — required by Spoonacular's terms of use. */}
-        {recipe.source && (
+        {details?.source && (
           <p className="modal__source">
             Recipe by{' '}
-            {recipe.url ? (
-              <a href={recipe.url} target="_blank" rel="noreferrer">{recipe.source}</a>
+            {url ? (
+              <a href={url} target="_blank" rel="noreferrer">{details.source}</a>
             ) : (
-              recipe.source
+              details.source
             )}
           </p>
         )}

@@ -7,6 +7,7 @@ import DietaryFilters from '../components/DietaryFilters.jsx';
 import RecipeCard from '../components/RecipeCard.jsx';
 import RecipeModal from '../components/RecipeModal.jsx';
 import RestaurantFinder from '../components/RestaurantFinder.jsx';
+import KitchenClosed from '../components/KitchenClosed.jsx';
 
 const PAGE_SIZE = 8; // recipes shown per page
 
@@ -16,12 +17,14 @@ export default function Home() {
   const [recipes, setRecipes] = useState([]);
   const [status, setStatus] = useState('idle'); // idle | loading | error
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState(''); // e.g. QUOTA_EXCEEDED
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [page, setPage] = useState(1);
 
   async function runSearch(q, health) {
     setStatus('loading');
     setError('');
+    setErrorCode('');
     try {
       const data = await searchRecipes(q, health);
       setRecipes(data.recipes);
@@ -29,6 +32,7 @@ export default function Home() {
       setStatus('idle');
     } catch (err) {
       setError(err.message);
+      setErrorCode(err.code || '');
       setStatus('error');
     }
   }
@@ -73,7 +77,12 @@ export default function Home() {
           </h2>
 
           {status === 'loading' && <p className="status">Loading recipes…</p>}
-          {status === 'error' && <p className="status status--error">{error}</p>}
+          {status === 'error' &&
+            (errorCode === 'QUOTA_EXCEEDED' ? (
+              <KitchenClosed message={error} />
+            ) : (
+              <p className="status status--error">{error}</p>
+            ))}
           {status === 'idle' && recipes.length === 0 && (
             <p className="status">No recipes found. Try different terms.</p>
           )}

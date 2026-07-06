@@ -32,7 +32,12 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     // Surface the server's error message when present, else a generic status.
-    throw new Error(data.error || `Request failed (${res.status})`);
+    const error = new Error(data.error || `Request failed (${res.status})`);
+    // Preserve the server's machine-readable code (e.g. QUOTA_EXCEEDED) and the
+    // HTTP status so callers can react — e.g. show a warm "kitchen closed" card.
+    error.code = data.code;
+    error.status = res.status;
+    throw error;
   }
   return data;
 }
