@@ -15,18 +15,31 @@ import shoppingListRouter from './routes/shopping-list.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Allow the Vite dev server (and later the deployed client) to call this API.
+// Extra origins allowed to call the API (comma-separated). Defaults to the Vite
+// dev server; add others (e.g. a separately-hosted client) via CLIENT_ORIGIN.
 const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
   .split(',')
-  .map((o) => o.trim());
+  .map((o) => o.trim())
+  .filter(Boolean);
 
+// CORS allows a request when: (1) it has no Origin (curl, health checks);
+// (2) it's SAME-ORIGIN — the Origin's host matches this request's Host. This is
+// essential for the production monolith, where this server also serves the
+// client, so browsers attach the site's own Origin to POSTs (login/register);
+// or (3) the Origin is explicitly allow-listed via CLIENT_ORIGIN.
 app.use(
-  cors({
-    origin(origin, callback) {
-      // Allow non-browser tools (curl, health checks) that send no Origin.
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
+  cors((req, callback) => {
+    const origin = req.header('Origin');
+    let sameOrigin = false;
+    if (origin) {
+      try {
+        sameOrigin = new URL(origin).host === req.get('host');
+      } catch {
+        sameOrigin = false;
+      }
+    }
+    const ok = !origin || sameOrigin || allowedOrigins.includes(origin);
+    callback(ok ? null : new Error(`Origin ${origin} not allowed by CORS`), { origin: ok });
   })
 );
 app.use(express.json());
