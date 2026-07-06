@@ -4,6 +4,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useShoppingList } from '../context/ShoppingListContext.jsx';
+import { usePwaInstall } from '../context/PwaInstallContext.jsx';
 import logo from '../assets/logo.png';
 
 export default function NavBar() {
@@ -11,6 +12,8 @@ export default function NavBar() {
   const { user, logout } = useAuth();
   // Shared shopping-list count so the badge stays in sync across pages.
   const { count } = useShoppingList();
+  // canInstall is true only when the browser has offered a PWA install prompt.
+  const { canInstall, promptInstall } = usePwaInstall();
 
   return (
     <nav className="navbar">
@@ -19,6 +22,10 @@ export default function NavBar() {
       </Link>
       <div className="navbar__links">
         <Link to="/">Home</Link>
+        {/* Only appears on browsers that support installing the PWA */}
+        {canInstall && (
+          <button className="navbar__install" onClick={promptInstall}>⬇ Install</button>
+        )}
         {user ? (
           <>
             <Link to="/favorites">Favorites</Link>
