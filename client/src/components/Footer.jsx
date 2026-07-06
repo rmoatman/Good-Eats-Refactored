@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-const REPO_URL = 'https://github.com/rmoatman/Good-Eats';
+const REPO_URL = 'https://github.com/rmoatman/Good-Eats-Refactored';
 const CONTACT_EMAIL = 'raemarie.oatman@gmail.com';
 
 export default function Footer() {
