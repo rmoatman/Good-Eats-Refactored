@@ -1,57 +1,57 @@
 // ===========================================================================
 // server/src/utils/mailer.js
-// Sends email via the SendGrid HTTPS API. We use HTTP (not SMTP) because many
-// hosts — including Render's free tier — block outbound SMTP ports, which makes
-// Nodemailer/Gmail hang and time out. SendGrid's free tier works over HTTPS.
+// Sends email via the Brevo (formerly Sendinblue) HTTPS API. We use HTTP (not
+// SMTP) because many hosts — including Render's free tier — block outbound SMTP
+// ports, which makes SMTP clients hang and time out. Brevo's free tier works
+// over HTTPS and activates immediately after you verify your sender email.
 //
 // Setup:
-//   1. Create a free SendGrid account.
-//   2. Verify a "Single Sender" (the From address, e.g. your Gmail) — no domain
-//      needed; SendGrid emails you a confirmation link.
-//   3. Create an API key (Mail Send permission).
+//   1. Create a free Brevo account (brevo.com).
+//   2. Add + verify a sender: Settings -> Senders, Domains & Dedicated IPs ->
+//      Senders -> add your From address (e.g. goodeats.admin@gmail.com) and click
+//      the verification link Brevo emails you.
+//   3. Create an API key: SMTP & API -> API Keys -> Generate a new API key (v3).
 //   4. Set in server/.env (and on Render):
-//        SENDGRID_API_KEY=SG.xxxx
-//        SENDGRID_FROM=your_verified_sender@example.com   (defaults to GMAIL_USER)
+//        BREVO_API_KEY=xkeysib-xxxx
+//        BREVO_FROM=your_verified_sender@example.com   (defaults to GMAIL_USER)
 // ===========================================================================
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-// The From address must be a SendGrid-verified sender. Fall back to GMAIL_USER
-// so existing setups keep working if that's the verified address.
-const FROM_EMAIL = (process.env.SENDGRID_FROM || process.env.GMAIL_USER || '').trim();
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+// The From address should be a Brevo-verified sender. Fall back to GMAIL_USER so
+// existing setups keep working if that's the verified address.
+const FROM_EMAIL = (process.env.BREVO_FROM || process.env.GMAIL_USER || '').trim();
 
 // True only when both the API key and a From address are present. When false we
 // skip sending and throw a clear error, so the rest of the app still runs.
-export const emailConfigured = Boolean(SENDGRID_API_KEY && FROM_EMAIL);
+export const emailConfigured = Boolean(BREVO_API_KEY && FROM_EMAIL);
 
-// Low-level send via SendGrid's v3 API. `content` must list text/plain before
-// text/html (SendGrid requires that order).
+// Low-level send via Brevo's transactional email API.
 async function sendEmail({ to, subject, text, html }) {
   if (!emailConfigured) {
-    console.warn('[mailer] SENDGRID_API_KEY / SENDGRID_FROM not set — cannot send email.');
+    console.warn('[mailer] BREVO_API_KEY / BREVO_FROM not set — cannot send email.');
     throw new Error('Email is not configured on the server.');
   }
 
-  const content = [{ type: 'text/plain', value: text }];
-  if (html) content.push({ type: 'text/html', value: html });
-
-  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${SENDGRID_API_KEY}`,
+      'api-key': BREVO_API_KEY,
       'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
     body: JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from: { email: FROM_EMAIL, name: 'Good Eats' },
+      sender: { name: 'Good Eats', email: FROM_EMAIL },
+      to: [{ email: to }],
       subject,
-      content,
+      textContent: text,
+      ...(html ? { htmlContent: html } : {}),
     }),
   });
 
-  // SendGrid returns 202 Accepted on success.
+  // Brevo returns 201 Created (with a messageId) on success.
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`SendGrid send failed (${res.status}): ${body.slice(0, 200)}`);
+    throw new Error(`Brevo send failed (${res.status}): ${body.slice(0, 200)}`);
   }
   return true;
 }

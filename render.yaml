@@ -24,7 +24,7 @@ services:
         sync: false # spoonacular.com/food-api
       - key: YELP_API_KEY
         sync: false # yelp.com/developers (optional — restaurant finder)
-      - key: SENDGRID_API_KEY
+      - key: BREVO_API_KEY
         sync: false # optional — password reset + "email my list" (HTTPS, SMTP-free)
-      - key: SENDGRID_FROM
-        sync: false # optional — your SendGrid-verified sender address
+      - key: BREVO_FROM
+        sync: false # optional — your Brevo-verified sender address
