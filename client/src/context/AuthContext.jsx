@@ -9,6 +9,10 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  // `loading` starts true so consumers (route guards, nav) can wait out the
+  // token check below instead of flashing a logged-out UI, then redirecting
+  // once the restore resolves. It flips to false exactly once, after the first
+  // check completes (whether or not a session was found).
   const [loading, setLoading] = useState(true); // true while checking existing token
 
   // On load, if we have a stored token, fetch the current user.
@@ -19,17 +23,22 @@ export function AuthProvider({ children }) {
         return;
       }
       try {
+        // /me validates the token server-side and echoes back the user record.
         const { user } = await authApi.me();
         setUser(user);
       } catch {
-        tokenStore.clear(); // token was invalid/expired
+        tokenStore.clear(); // token was invalid/expired — drop it so we don't retry
       } finally {
         setLoading(false);
       }
     }
     restore();
+    // Empty deps: run once on mount. Login/logout update `user` directly, so
+    // there's nothing to re-restore afterward.
   }, []);
 
+  // Persist the token first so any request fired right after setUser (e.g. the
+  // favorites/shopping-list loads that key off `user`) already sees it.
   async function login(email, password) {
     const { token, user } = await authApi.login(email, password);
     tokenStore.set(token);

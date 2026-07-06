@@ -72,6 +72,8 @@ export default function Privacy() {
       {/* Account deletion is only offered to logged-in users. */}
       {user ? (
         <>
+          {/* Disabled while the request is in flight to prevent a double-submit;
+              label reflects that pending state. Errors render just below it. */}
           <button
             type="button"
             className="btn-danger"

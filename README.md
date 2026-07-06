@@ -11,6 +11,11 @@ refactored into a living, full-stack web app. This repository holds the
 refactored version: a React front end and an Express/MongoDB back end that keeps
 all third-party API keys server-side.
 
+> **Curious about the engineering behind it?** [LESSONS.md](LESSONS.md) documents
+> the real-world problems solved along the way — a same-origin CORS bug, a
+> `NODE_ENV=production` build gotcha, MongoDB Atlas auth, a corrupted env-var
+> paste, and getting transactional email working when the host blocks SMTP.
+
 ## Features
 
 - **Recipe search** with dietary-restriction filters (gluten-, dairy-, egg-,

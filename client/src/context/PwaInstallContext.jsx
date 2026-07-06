@@ -21,6 +21,8 @@ function isStandalone() {
 }
 
 export function PwaInstallProvider({ children }) {
+  // Lazy initializers read the state that main.jsx may already have captured
+  // before React mounted — the event can fire before this component exists.
   const [deferred, setDeferred] = useState(() => window.__deferredInstallPrompt || null);
   const [installed, setInstalled] = useState(isStandalone);
 
@@ -44,6 +46,8 @@ export function PwaInstallProvider({ children }) {
   // Shows the browser's native install dialog. Returns 'accepted' | 'dismissed'
   // | null (no prompt available). A prompt can only be used once, so we clear it.
   async function promptInstall() {
+    // Read the live window stash (not the `deferred` state) so we use the real
+    // browser event object even if a render hasn't synced state yet.
     const evt = window.__deferredInstallPrompt;
     if (!evt) return null;
     evt.prompt();
@@ -53,6 +57,8 @@ export function PwaInstallProvider({ children }) {
     return outcome;
   }
 
+  // canInstall drives whether the in-app Install button renders: true only when
+  // we're holding a usable prompt AND the app isn't already installed/standalone.
   return (
     <PwaInstallContext.Provider
       value={{ canInstall: !!deferred && !installed, installed, promptInstall }}

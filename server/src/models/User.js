@@ -32,27 +32,38 @@ const userSchema = new mongoose.Schema(
     resetTokenHash: { type: String },
     resetTokenExpires: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true } // auto-manages createdAt / updatedAt on the user doc
 );
 
 // Hash a plain password and store it. Never store the raw password.
+// genSalt(10) = 2^10 bcrypt rounds: enough to make brute-forcing a leaked hash
+// expensive while staying fast enough for interactive login. The salt is baked
+// into the resulting hash string, so no separate salt column is needed.
 userSchema.methods.setPassword = async function (plainPassword) {
   const salt = await bcrypt.genSalt(10);
   this.passwordHash = await bcrypt.hash(plainPassword, salt);
 };
 
-// Compare a login attempt against the stored hash.
+// Compare a login attempt against the stored hash. bcrypt.compare re-hashes the
+// attempt with the salt embedded in passwordHash and does a constant-time
+// compare, so we never decrypt anything. Returns a promise<boolean>.
 userSchema.methods.verifyPassword = function (plainPassword) {
   return bcrypt.compare(plainPassword, this.passwordHash);
 };
 
-// Never leak the hash when serializing to JSON.
+// Build the client-safe view of a user. We hand-pick fields (id/email/createdAt)
+// rather than returning the doc so the passwordHash and reset-token fields can
+// never accidentally be serialized into an API response.
 userSchema.methods.toSafeJSON = function () {
   return { id: this._id, email: this.email, createdAt: this.createdAt };
 };
 
 // Generate a password-reset token: store its hash + expiry on the user and
 // return the RAW token to email (only the user ever sees the raw value).
+// This mirrors how passwords are handled — the DB holds only a hash, so a DB
+// leak can't be replayed to reset accounts. The raw token is 32 random bytes
+// (256 bits), far too large to guess. SHA-256 (not bcrypt) is fine here because
+// the token is already high-entropy random, so it doesn't need slow hashing.
 userSchema.methods.setResetToken = function () {
   const rawToken = crypto.randomBytes(32).toString('hex');
   this.resetTokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
@@ -60,15 +71,21 @@ userSchema.methods.setResetToken = function () {
   return rawToken;
 };
 
-// Clear a reset token once it's used (or should be invalidated).
+// Clear a reset token once it's used (or should be invalidated) so it can't be
+// reused. Setting to undefined unsets the fields on save (a token is single-use).
 userSchema.methods.clearResetToken = function () {
   this.resetTokenHash = undefined;
   this.resetTokenExpires = undefined;
 };
 
-// Hash a raw token the same way, for looking a user up by their reset token.
+// Hash a raw token the same way setResetToken did, so the reset route can look
+// a user up by resetTokenHash from the token in the emailed link. A static (not
+// an instance method) because we hash before we've found which user it belongs to.
 userSchema.statics.hashResetToken = function (rawToken) {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
 };
 
+// Compile the schema into a model bound to the "users" collection (Mongoose
+// lowercases + pluralizes the name). Unlike the embedded sub-schemas, this is a
+// real model because users are their own top-level collection.
 export default mongoose.model('User', userSchema);

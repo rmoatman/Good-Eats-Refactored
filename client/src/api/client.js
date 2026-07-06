@@ -7,6 +7,10 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const TOKEN_KEY = 'goodeats_token';
 
+// The JWT lives in localStorage so it survives page reloads and lets
+// AuthContext silently restore a session on startup. Centralizing get/set/clear
+// here means only this module knows the storage key, and every auth'd request
+// reads the token the same way.
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (token) => localStorage.setItem(TOKEN_KEY, token),
@@ -14,14 +18,19 @@ export const tokenStore = {
 };
 
 // Core fetch wrapper: adds the JSON + auth headers and unwraps errors.
+// `auth` defaults to false so public endpoints (recipe/restaurant search) send
+// no Authorization header; protected endpoints opt in by passing auth: true.
 async function request(path, { method = 'GET', body, auth = false } = {}) {
   const headers = {};
+  // Only set Content-Type when there's a body to encode; a bare GET sends none.
   if (body) headers['Content-Type'] = 'application/json';
   if (auth) {
     const token = tokenStore.get();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
+  // API_BASE is '' in dev/monolith, so this resolves to a same-origin /api/...
+  // request; in a split deployment it prefixes the remote API origin.
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
@@ -55,6 +64,10 @@ export async function searchRecipes(query, healthLabels = []) {
 export async function getRecipeDetails(id) {
   return request(`/api/recipes/${encodeURIComponent(id)}`);
 }
+
+// Grouped endpoint helpers below. Each returns request()'s parsed JSON (or
+// throws the enriched error above), so callers work with plain data/promises
+// and never touch fetch, headers, or the token directly.
 
 // --- Auth ---
 export const authApi = {
@@ -99,6 +112,8 @@ export const shoppingApi = {
 // --- Favorites (all require auth) ---
 export const favoritesApi = {
   list: () => request('/api/favorites', { auth: true }),
+  // The full recipe object is sent as the POST body so the server can snapshot
+  // it — favorites keep working even if the recipe later leaves the search API.
   add: (recipe) => request('/api/favorites', { method: 'POST', auth: true, body: recipe }),
   remove: (recipeId) =>
     request(`/api/favorites/${encodeURIComponent(recipeId)}`, { method: 'DELETE', auth: true }),

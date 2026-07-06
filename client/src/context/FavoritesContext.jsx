@@ -34,11 +34,16 @@ export function FavoritesProvider({ children }) {
     };
   }, [user]);
 
+  // Memoized so its identity only changes when `favorites` does — many recipe
+  // cards call this, and a stable reference avoids re-running their effects /
+  // re-rendering on every provider render.
   const isFavorite = useCallback(
     (recipeId) => favorites.some((f) => f.recipeId === recipeId),
     [favorites]
   );
 
+  // Each mutation returns the server's full updated list, which we adopt
+  // wholesale — no optimistic local edits, so client and server can't diverge.
   async function addFavorite(recipe) {
     const { favorites } = await favoritesApi.add(recipe);
     setFavorites(favorites);

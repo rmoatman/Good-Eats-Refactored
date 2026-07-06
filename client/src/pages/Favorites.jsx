@@ -1,12 +1,16 @@
 // Favorites — lists the logged-in user's saved recipes, each with a link out
 // to the source recipe and a remove button. Requires auth; prompts to log in otherwise.
+//
+// This page is purely a view over shared context: auth state comes from
+// AuthContext and the saved-recipe list (plus mutations) from FavoritesContext,
+// which owns the API calls and keeps the list in sync across the app.
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useFavorites } from '../context/FavoritesContext.jsx';
 
 export default function Favorites() {
-  const { user } = useAuth();
-  const { favorites, removeFavorite } = useFavorites();
+  const { user } = useAuth();                       // null when logged out
+  const { favorites, removeFavorite } = useFavorites(); // saved recipes + remove action
 
   // Not logged in — prompt to sign in.
   if (!user) {
@@ -31,7 +35,11 @@ export default function Favorites() {
       ) : (
         <ul className="recipe-list">
           {favorites.map((f) => (
+            // Keyed by recipeId (the saved recipe's stable id), reused below as
+            // the target for removeFavorite.
             <li key={f.recipeId} className="recipe-card">
+              {/* Reuses the RecipeCard visual styling, but the "--static"
+                  variant makes it a non-clickable display card (no modal here). */}
               <div className="recipe-card__button recipe-card__button--static">
                 {f.image && (
                   <img className="recipe-card__image" src={f.image} alt={f.label} />

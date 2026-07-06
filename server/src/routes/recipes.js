@@ -1,7 +1,18 @@
+// Recipe search routes: a server-side proxy in front of the Spoonacular API.
+// Two responsibilities:
+//   1. Keep SPOONACULAR_API_KEY out of the browser — the client hits our
+//      endpoints and we attach the secret key when calling upstream.
+//   2. Conserve Spoonacular's daily "points" budget. Search returns only a
+//      cheap list (id/title/image); the expensive full detail (ingredients,
+//      steps, cuisine) is fetched one recipe at a time when a modal opens.
+// When the daily point quota runs out Spoonacular replies HTTP 402; we translate
+// that into a friendly "kitchen closed" message rather than leaking a raw error.
 import { Router } from 'express';
 
 const router = Router();
 
+// complexSearch is the list/discovery endpoint (cheap). Per-recipe detail uses a
+// different URL (/recipes/:id/information) built inline in the GET /:id handler.
 const SPOONACULAR_BASE = 'https://api.spoonacular.com/recipes/complexSearch';
 
 // Shown to users when Spoonacular's daily point quota is exhausted (HTTP 402),
@@ -12,7 +23,8 @@ const KITCHEN_CLOSED_MESSAGE =
 
 // The dietary-filter values the client sends map onto Spoonacular's
 // "intolerances" parameter (comma-separated). Whitelisted so we never forward
-// arbitrary user input upstream.
+// arbitrary user input upstream: only keys present in this map are ever passed
+// on, so a bogus/injected health value is silently dropped rather than relayed.
 const INTOLERANCE_MAP = {
   'gluten-free': 'gluten',
   'dairy-free': 'dairy',
@@ -35,6 +47,10 @@ const DIET_MAP = {
 // analyzedInstructions, so the client can show steps in-app rather than relying
 // on the (sometimes dead) source link.
 function extractSteps(recipe) {
+  // analyzedInstructions is an array of "blocks" (e.g. a recipe with separate
+  // sections), each holding an ordered steps[] array. Guard the shape because it
+  // can be missing/malformed upstream. Flatten every block's steps into one
+  // ordered list of step strings, dropping any empty/undefined entries.
   const blocks = Array.isArray(recipe.analyzedInstructions)
     ? recipe.analyzedInstructions
     : [];
@@ -54,6 +70,8 @@ router.get('/search', async (req, res, next) => {
       return res.status(500).json({ error: 'Spoonacular API key is not configured on the server.' });
     }
 
+    // Coerce to string + trim so an array/object query param can't break the
+    // upstream URL and empty whitespace is treated as "no query".
     const q = (req.query.q || '').toString().trim();
 
     const params = new URLSearchParams();
@@ -68,6 +86,9 @@ router.get('/search', async (req, res, next) => {
     // paying for detailed info on 20 recipes the user may never open.
 
     // health can arrive as a single value or an array (?health=a&health=b).
+    // Normalize to an array: one repeated param → array; a lone param → wrap it;
+    // nothing → empty array. Then split each value into Spoonacular's two
+    // distinct concepts — "intolerances" (allergens) vs "diet" (vegan/veg).
     const rawHealth = req.query.health;
     const healthValues = Array.isArray(rawHealth) ? rawHealth : rawHealth ? [rawHealth] : [];
     const intolerances = [];
@@ -81,11 +102,15 @@ router.get('/search', async (req, res, next) => {
 
     const response = await fetch(`${SPOONACULAR_BASE}?${params.toString()}`);
     if (!response.ok) {
+      // Read the body once as text (not .json) so a non-JSON error page from
+      // upstream doesn't throw here; we only echo a truncated slice below.
       const body = await response.text();
       // Daily quota used up — show the friendly "kitchen closed" message.
       if (response.status === 402) {
         return res.status(402).json({ error: KITCHEN_CLOSED_MESSAGE, code: 'QUOTA_EXCEEDED' });
       }
+      // Pass through the upstream status but cap the relayed body: an
+      // unexpectedly large error page shouldn't bloat our JSON response.
       return res.status(response.status).json({
         error: 'Recipe search failed upstream.',
         upstreamStatus: response.status,
@@ -102,6 +127,8 @@ router.get('/search', async (req, res, next) => {
       image: r.image,
     }));
 
+    // totalResults reflects the full upstream match count (may exceed the 20 we
+    // fetched); fall back to the page size if upstream omits it.
     res.json({ count: data.totalResults ?? recipes.length, recipes });
   } catch (err) {
     next(err);
@@ -121,6 +148,8 @@ router.get('/:id', async (req, res, next) => {
     if (!SPOONACULAR_API_KEY) {
       return res.status(500).json({ error: 'Spoonacular API key is not configured on the server.' });
     }
+    // encodeURIComponent guards the path segment against injection from the
+    // client-supplied id. includeNutrition=false trims the payload (and cost).
     const id = encodeURIComponent(req.params.id);
     const url = `https://api.spoonacular.com/recipes/${id}/information?includeNutrition=false&apiKey=${SPOONACULAR_API_KEY}`;
     const response = await fetch(url);
@@ -141,8 +170,11 @@ router.get('/:id', async (req, res, next) => {
       id: String(r.id),
       label: r.title,
       image: r.image,
+      // Prefer the original source link; fall back to Spoonacular's own page.
       url: r.sourceUrl || r.spoonacularSourceUrl || '',
       yield: r.servings,
+      // Field names are remapped to the vocabulary the client already used with
+      // the previous provider (Edamam), so the UI didn't need to change.
       mealType: r.dishTypes || [],
       cuisineType: r.cuisines || [],
       dietLabels: r.diets || [],

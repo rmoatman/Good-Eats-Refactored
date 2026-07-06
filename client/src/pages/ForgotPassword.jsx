@@ -7,18 +7,23 @@ import { authApi } from '../api/client.js';
 // we just show a "check your email" confirmation on success.
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState('idle'); // idle | submitting | sent | error
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | submitting | sent | error — drives which view renders
+  const [message, setMessage] = useState('');    // confirmation or error text shown to the user
 
   async function handleSubmit(e) {
     e.preventDefault();
     setStatus('submitting');
     setMessage('');
     try {
+      // The server returns the same generic message whether or not the email is
+      // registered, so a successful call never confirms an account exists. We
+      // fall back to that same wording if the server sends no message.
       const res = await authApi.forgotPassword(email);
       setMessage(res.message || 'If an account exists for that email, a reset link has been sent.');
       setStatus('sent');
     } catch (err) {
+      // Only genuine failures (network/server errors) land here — not "no such
+      // account", which by design still resolves as a success above.
       setMessage(err.message);
       setStatus('error');
     }
@@ -28,6 +33,8 @@ export default function ForgotPassword() {
     <div className="auth">
       <h2 className="auth__title">Forgot your password?</h2>
 
+      {/* After a successful request, replace the form with a confirmation so the
+          user can't resubmit; otherwise (idle/submitting/error) show the form. */}
       {status === 'sent' ? (
         <>
           <p className="status">{message}</p>

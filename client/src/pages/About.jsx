@@ -1,5 +1,10 @@
+// About page (/about): static content page telling the app's origin story and
+// crediting the original class-project team. Linked from the site footer; uses
+// the shared .info-* content-page styles so its layout matches Install/Privacy.
+
 // The original Good Eats team, credited by GitHub profile. This started as a
 // class project (Project 1) and is being refactored into a living app.
+// Kept as a data array so the credits list below can be rendered with a map.
 const TEAM = [
   { name: 'Tyler Wheeler', gh: 'twheeler92' },
   { name: 'Raemarie Oatman', gh: 'rmoatman' },
@@ -21,10 +26,13 @@ export default function About() {
       </p>
 
       <p className="info-section-label">Original team</p>
+      {/* Render one credit row per team member; keyed by GitHub handle (unique). */}
       <ul className="info-credits">
         {TEAM.map((m) => (
           <li key={m.gh}>
             <span className="info-credit-name">{m.name}</span>
+            {/* Handle is interpolated into the profile URL; rel="noreferrer"
+                is the safe pairing for target="_blank" external links. */}
             <a
               className="info-credit-link"
               href={`https://github.com/${m.gh}`}

@@ -32,6 +32,8 @@ async function sendEmail({ to, subject, text, html }) {
     throw new Error('Email is not configured on the server.');
   }
 
+  // Uses the global fetch (Node 18+), so no HTTP client dependency is needed.
+  // Auth is the raw API key in the `api-key` header (Brevo's scheme — not Bearer).
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
@@ -44,6 +46,9 @@ async function sendEmail({ to, subject, text, html }) {
       to: [{ email: to }],
       subject,
       textContent: text,
+      // Only include htmlContent when an html body was passed; sending both lets
+      // the recipient's client pick the richer version and keeps a plaintext
+      // fallback (better deliverability, works in text-only readers).
       ...(html ? { htmlContent: html } : {}),
     }),
   });
@@ -59,12 +64,17 @@ async function sendEmail({ to, subject, text, html }) {
 // Send a shopping list to the given address. `groups` is an array of
 // { recipeLabel, items: [text, ...] }. Returns true when sent.
 export async function sendShoppingListEmail(to, groups) {
+  // Build the plaintext and HTML bodies in parallel from the same data so the
+  // two versions stay in sync. textParts is joined with newlines; htmlParts is
+  // concatenated into markup.
   const textParts = [];
   const htmlParts = ['<h2>Your Good Eats Shopping List</h2>'];
 
   for (const group of groups) {
     const title = group.recipeLabel || 'Other items';
     textParts.push(`\n${title}`);
+    // escapeHtml on every user-derived string (recipe titles + items) so a value
+    // like "Salt & Pepper" or "<script>" can't break or inject into the markup.
     htmlParts.push(`<h3>${escapeHtml(title)}</h3><ul>`);
     for (const item of group.items) {
       textParts.push(`  - ${item}`);

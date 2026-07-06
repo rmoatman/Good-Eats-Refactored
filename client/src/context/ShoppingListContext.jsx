@@ -56,10 +56,14 @@ export function ShoppingListProvider({ children }) {
   }
 
   // Ask the server to email the list. Returns the API response (or throws).
+  // Read-only side effect: it sends mail but doesn't mutate the list, so unlike
+  // the handlers above it doesn't call setItems.
   function emailList() {
     return shoppingApi.email();
   }
 
+  // `count` is derived from items.length here so consumers (e.g. a nav badge)
+  // don't each recompute it and stay in sync with the list automatically.
   return (
     <ShoppingListContext.Provider
       value={{ items, count: items.length, addRecipe, toggleItem, removeItem, clearList, emailList }}

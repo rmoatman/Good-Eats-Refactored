@@ -1,4 +1,5 @@
-// The dietary restriction checkboxes. Each value maps to an Edamam health label.
+// The dietary-restriction checkboxes. Each `value` is sent to our API as a
+// `health` param, which the server maps onto a Spoonacular "intolerance".
 const FILTERS = [
   { value: 'gluten-free', label: 'Gluten Free' },
   { value: 'dairy-free', label: 'Dairy Free' },

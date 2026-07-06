@@ -1,6 +1,8 @@
 // Restaurant search endpoint. Acts as a thin proxy to the Yelp Fusion API so
 // the API key never reaches the browser: the client calls us, we call Yelp
 // with the secret key server-side and return a trimmed-down result set.
+// Unlike favorites/shopping-list, this route is intentionally public (no
+// requireAuth) — it's read-only, user-agnostic search with no personal data.
 import { Router } from 'express';
 
 const router = Router();

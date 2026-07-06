@@ -19,6 +19,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
   window.dispatchEvent(new Event('pwa:installable'));
 });
 
+// StrictMode is dev-only and intentionally double-invokes effects/renders to
+// surface impure logic and missing effect cleanups; it has no effect in production.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

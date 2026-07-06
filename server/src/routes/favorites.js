@@ -15,6 +15,8 @@ router.get('/', async (req, res, next) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found.' });
+    // Copy the array before sorting ([...]) so we don't mutate the order of the
+    // live Mongoose array; sort newest-first by each favorite's createdAt.
     const favorites = [...user.favorites].sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );

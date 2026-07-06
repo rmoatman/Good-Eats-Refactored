@@ -27,6 +27,9 @@ router.post('/register', async (req, res, next) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
 
+    // Register intentionally DOES reveal whether an email is taken (409) — a
+    // signup form has to tell the user, and the email's uniqueness is already
+    // observable by trying to register. Login/forgot-password stay generic.
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ error: 'An account with that email already exists.' });
@@ -52,7 +55,9 @@ router.post('/login', async (req, res, next) => {
     const password = (req.body.password || '').toString();
 
     const user = await User.findOne({ email });
-    // Same message whether the email or password is wrong (no user enumeration).
+    // Same 401 + message whether the email is unknown or the password is wrong,
+    // so an attacker can't probe which emails have accounts (no user
+    // enumeration). verifyPassword runs bcrypt's constant-time-ish compare.
     if (!user || !(await user.verifyPassword(password))) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
@@ -94,6 +99,10 @@ router.post('/forgot-password', async (req, res, next) => {
     if (EMAIL_RE.test(email)) {
       const user = await User.findOne({ email });
       if (user) {
+        // setResetToken() generates a random token, stores only its HASH (plus
+        // an expiry) on the user, and returns the RAW token for the email link.
+        // Storing just the hash means a DB leak can't be used to reset passwords
+        // — the same reason we hash passwords rather than store them.
         const rawToken = user.setResetToken();
         await user.save();
         // In production on Render, RENDER_EXTERNAL_URL is the app's own URL; in
@@ -128,6 +137,9 @@ router.post('/reset-password', async (req, res, next) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
 
+    // Look up by the hash of the presented token (we never stored the raw one)
+    // AND require the expiry to still be in the future. Both conditions must
+    // match a single user, so an expired or forged token finds nothing.
     const user = await User.findOne({
       resetTokenHash: User.hashResetToken(token),
       resetTokenExpires: { $gt: new Date() }, // not expired
@@ -139,6 +151,8 @@ router.post('/reset-password', async (req, res, next) => {
     }
 
     await user.setPassword(password);
+    // Clear the token so the link can't be replayed to reset the password again
+    // (single-use); the new password takes effect on save.
     user.clearResetToken(); // single-use
     await user.save();
 

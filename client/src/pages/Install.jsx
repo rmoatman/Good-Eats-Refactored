@@ -29,6 +29,8 @@ export default function Install() {
       ) : (
         canInstall && (
           <div className="install-cta">
+            {/* promptInstall() fires the browser's saved beforeinstallprompt event
+                (captured by PwaInstallContext) to show the native install dialog. */}
             <button className="btn-install" type="button" onClick={promptInstall}>
               ⬇ Install Good Eats
             </button>

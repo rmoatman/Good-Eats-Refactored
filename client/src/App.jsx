@@ -23,6 +23,8 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* NavBar and Footer sit OUTSIDE <Routes>, so they persist (never unmount)
+          as the routed page inside .page swaps on navigation. */}
       <NavBar />
       <div className="page">
         {/* login vs. register reuse one AuthForm, switched by the mode prop */}

@@ -13,7 +13,10 @@ const shoppingItemSchema = new Schema(
     recipeLabel: { type: String, default: '' },   // source recipe name
     checked: { type: Boolean, default: false },   // ticked off in the UI
   },
-  { timestamps: true }
+  { timestamps: true } // auto createdAt/updatedAt per line item
 );
 
+// Exported as a schema, not a model — persistence comes from embedding it in
+// User.shoppingList. Each item gets its own Mongoose _id, which the shopping-list
+// routes use to toggle `checked` or remove a single line.
 export default shoppingItemSchema;

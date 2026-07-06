@@ -19,4 +19,7 @@ const favoriteSchema = new Schema(
   { timestamps: true } // records when each favorite was added
 );
 
+// Exported as a schema, not mongoose.model(...) — embedding it in User.favorites
+// is what gives it persistence. Each embedded favorite still gets its own _id
+// from Mongoose, which the favorites routes can use to address a single entry.
 export default favoriteSchema;
