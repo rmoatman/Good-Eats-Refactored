@@ -455,6 +455,50 @@ body {
   }
 }
 
+/* Print just the recipe modal. The modal's Print button adds `.printing-recipe`
+   to <body>; this is scoped to that class so it never affects the shopping-list
+   print above. The visibility trick hides the whole page, then re-shows only the
+   modal subtree, which is repositioned to the top of the page. */
+@media print {
+  body.printing-recipe * {
+    visibility: hidden;
+  }
+  body.printing-recipe .modal,
+  body.printing-recipe .modal * {
+    visibility: visible;
+  }
+  body.printing-recipe .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: none;
+    padding: 0;
+    display: block;
+    overflow: visible;
+  }
+  body.printing-recipe .modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  /* Controls shouldn't appear on paper. */
+  body.printing-recipe .modal__close,
+  body.printing-recipe .modal__actions {
+    display: none !important;
+  }
+  /* Keep the photo a reasonable size on the printout. */
+  body.printing-recipe .modal__image {
+    max-height: 3in;
+  }
+}
+
 /* Results */
 .results__header {
   color: var(--brand-dark);

@@ -81,6 +81,19 @@ export default function RecipeModal({ recipe, onClose }) {
     setTimeout(() => setAddedToList(false), 2500); // brief confirmation
   }
 
+  // Print just this recipe (image + ingredients + instructions), no need to
+  // visit the source site. We tag <body> so the print stylesheet shows only the
+  // modal, then remove the tag once the print dialog closes.
+  function handlePrint() {
+    document.body.classList.add('printing-recipe');
+    const cleanup = () => {
+      document.body.classList.remove('printing-recipe');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
@@ -141,6 +154,11 @@ export default function RecipeModal({ recipe, onClose }) {
         )}
 
         <div className="modal__actions">
+          {/* Print the recipe in-app. Enabled only once details have loaded so
+              the printout actually includes the ingredients + steps. */}
+          <button className="fav-button" onClick={handlePrint} disabled={!details}>
+            🖨 Print recipe
+          </button>
           {url && (
             <a className="modal__link" href={url} target="_blank" rel="noreferrer">
               View full recipe
