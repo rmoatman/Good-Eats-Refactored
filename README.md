@@ -22,8 +22,11 @@ all third-party API keys server-side.
   peanut-, and wheat-free), powered by the Spoonacular API.
 - **Recipe details** in a popup: full ingredient list, step-by-step
   instructions loaded on demand, and a link/credit to the original source.
+- **Print a recipe** in-app — a clean printout (image, ingredients, and
+  instructions) straight from the recipe popup, no need to visit the source site.
 - **Accounts** — register and log in (JWT auth; passwords hashed with bcrypt).
-- **Favorites** — save recipes to your account and revisit them later.
+- **Favorites** — save recipes to your account, reopen them for the full detail
+  view, and print them later.
 - **Shopping list** — add a recipe's ingredients, check items off, print, or
   email the list to yourself; grouped by recipe.
 - **Restaurant finder** — nearby restaurants by geolocation or ZIP code (Yelp
